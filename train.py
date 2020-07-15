@@ -200,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument('--cfg', type=str, default='config.yaml', help='config.yaml path')
     parser.add_argument('--train' , type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--folds' , type=str, default='train_folds.csv', help='folds.csv path')
-    parser.add_argument('--weights', type=str, default='checkpoint.pt', help='checkpoint.pt path')
+    parser.add_argument('--weights', type=str, help='checkpoint.pt path')
     opt = parser.parse_args()
 
     ## CONFIG
