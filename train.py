@@ -213,7 +213,7 @@ if __name__ == "__main__":
     ## DATA
     df_folds = pd.read_csv(opt.folds)
     markings = pd.read_csv(opt.train)
-    train_loader, val_loader = get_dataloaders(df_folds, markings,  fold_number=config.fold)
+    train_loader, val_loader = get_dataloaders(df_folds, markings,  config)
     
     ## MODEL
     if opt.weights:
