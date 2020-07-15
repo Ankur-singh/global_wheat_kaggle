@@ -6,7 +6,7 @@ import albumentations as A
 from torch.utils.data import Dataset, DataLoader
 from albumentations.pytorch import ToTensor
 
-def get_train_transforms():
+def get_train_transforms(img_sz):
     return A.Compose([A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
                       A.OneOf([A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit= 0.2, val_shift_limit=0.2, p=0.9),
                                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.9)],p=0.9),
@@ -14,7 +14,7 @@ def get_train_transforms():
                       ToTensor()], p=1.0, 
                       bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
 
-def get_valid_transforms():
+def get_valid_transforms(img_sz):
     return A.Compose([A.Resize(height=img_sz, width=img_sz, p=1.0),ToTensor()], 
                       p=1.0, 
                       bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
@@ -123,22 +123,22 @@ class DatasetRetriever(Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def get_dataloaders(df_folds, marking,  fold_number=0):
-    train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != fold_number].image_id.values,
-                                    marking=marking, transforms=get_train_transforms(), test=False)
+def get_dataloaders(df_folds, marking,  config):
+    train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != config.fold].image_id.values,
+                                    marking=marking, transforms=get_train_transforms(config.img_sz), test=False)
 
-    validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == fold_number].image_id.values,
-                                        marking=marking, transforms=get_valid_transforms(), test=True)
+    validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == config.fold].image_id.values,
+                                        marking=marking, transforms=get_valid_transforms(config.img_sz), test=True)
 
     train_loader = DataLoader(train_dataset,
-                              batch_size=batch_size,
+                              batch_size=config.batch_size,
                               sampler=RandomSampler(train_dataset),
                               pin_memory=False, drop_last=True,
-                              num_workers=num_workers, collate_fn=collate_fn)
+                              num_workers=config.num_workers, collate_fn=collate_fn)
     val_loader = DataLoader(validation_dataset, 
-                            batch_size=batch_size,
+                            batch_size=config.batch_size,
                             sampler=SequentialSampler(validation_dataset),
                             pin_memory=False, shuffle=False,
-                            num_workers=num_workers, collate_fn=collate_fn)   
+                            num_workers=config.num_workers, collate_fn=collate_fn)   
 
     return train_loader, val_loader
