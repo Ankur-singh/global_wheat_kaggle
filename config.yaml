@@ -1,0 +1,15 @@
+num_workers: 2
+batch_size: 1
+accumulation_steps: 4
+n_epochs: 1
+lr: 0.0002
+fold: 0
+img_sz: 640
+
+folder: 'effdet5'
+
+verbose: False
+verbose_step: 1
+
+step_scheduler: False  # do scheduler.step after optimizer.step
+validation_scheduler: True  # do scheduler.step after validation stage loss
