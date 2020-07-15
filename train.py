@@ -208,7 +208,3 @@ if __name__ == "__main__":
     ## TRAINING
     fitter = Fitter(model=net, device=device, config=config)
     fitter.fit(train_loader, val_loader)
-
-    
-
-

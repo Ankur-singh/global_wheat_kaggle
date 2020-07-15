@@ -14,7 +14,7 @@ def create_folds(df, path, name='train_folds.csv', k=5):
     df_folds = df[['image_id']].copy()
     df_folds.loc[:, 'bbox_count'] = 1
     df_folds = df_folds.groupby('image_id').count()
-    df_folds.loc[:, 'source'] = marking[['image_id', 'source']].groupby('image_id').min()['source']
+    df_folds.loc[:, 'source'] = df[['image_id', 'source']].groupby('image_id').min()['source']
     df_folds.loc[:, 'stratify_group'] = np.char.add(
         df_folds['source'].values.astype(str),
         df_folds['bbox_count'].apply(lambda x: f'_{x // 15}').values.astype(str)
@@ -36,7 +36,6 @@ def combine_csv(trn, sub, path, name='train_ext.csv'):
     trn, sub, path : path object/str
     """
     path = Path('.') if path is None else path
-    
     trn_df = pd.read_csv(trn)
     sub_df = pd.read_csv(sub)
 
@@ -62,10 +61,11 @@ def combine_csv(trn, sub, path, name='train_ext.csv'):
     ext_df['height'] = 1024
 
     ext_df = ext_df[list(trn_df.columns)]
+    ext_df = pd.concat([trn_df, ext_df], axis=0)
     ext_df.to_csv(path/name, index=False)
     print(f'[COMBINED CSV] {trn} + {sub} -> {path/name}')
 
-def make_pseudo_labels(trn, sub, path, k=5):
+def make_pseudo_labels(trn, sub, path=None, k=5):
     path = Path('.') if path is None else path
     
     ## combining train and submission files
@@ -80,15 +80,14 @@ def make_pseudo_labels(trn, sub, path, k=5):
     
     ## Making folds form the new csv
     create_folds(df, path, name='train_ext_folds.csv')
-    print(f'[FOLDS]   path: {path/"train_ext_folds.csv"} \n \ 
-            [MARKING] path: {path/"train_ext.csv"}')
+    print(f'[FOLDS]   path: {path/"train_ext_folds.csv"} \n [MARKING] path: {path/"train_ext.csv"}')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--trn', type=str, default='data/train.csv', help='train.csv path')
-    parser.add_argument('--sub', type=str, default='submission.csv', help='submission.csv path')
+    parser.add_argument('--trn', type=str, default='../data/train.csv', help='train.csv path')
+    parser.add_argument('--sub', type=str, default='../submission_best.csv', help='submission.csv path')
     opt = parser.parse_args()
 
-    make_pseudo_labels(opt.trn, opt.sub)
+    make_pseudo_labels(opt.trn, opt.sub, path=Path('testing'))
 
