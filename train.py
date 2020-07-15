@@ -11,7 +11,6 @@ import argparse
 import pandas as pd
 from datetime import datetime
 from tqdm import tqdm_notebook as tqdm
-from torch.utils.data.sampler import SequentialSampler, RandomSampler
 
 from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from effdet.efficientdet import HeadNet

@@ -5,6 +5,7 @@ import numpy as np
 import albumentations as A
 from torch.utils.data import Dataset, DataLoader
 from albumentations.pytorch import ToTensor
+from torch.utils.data.sampler import SequentialSampler, RandomSampler
 
 def get_train_transforms(img_sz):
     return A.Compose([A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
