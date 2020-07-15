@@ -85,9 +85,9 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--trn', type=str, default='../data/train.csv', help='train.csv path')
-    parser.add_argument('--sub', type=str, default='../submission_best.csv', help='submission.csv path')
+    parser.add_argument('--trn', type=str, default='data/train.csv', help='train.csv path')
+    parser.add_argument('--sub', type=str, default='submission_best.csv', help='submission.csv path')
     opt = parser.parse_args()
 
-    make_pseudo_labels(opt.trn, opt.sub, path=Path('testing'))
+    make_pseudo_labels(opt.trn, opt.sub)
 
