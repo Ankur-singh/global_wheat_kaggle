@@ -22,12 +22,13 @@ def get_valid_transforms(img_sz):
 
 
 class DatasetRetriever(Dataset):
-    def __init__(self, marking, image_ids, transforms=None, test=False):
+    def __init__(self, marking, image_ids, path, transforms=None, test=False):
         super().__init__()
         self.image_ids = image_ids
         self.marking = marking
         self.transforms = transforms
         self.test = test
+        self.path = path
 
     def __getitem__(self, index: int):
         image_id = self.image_ids[index]
@@ -63,9 +64,9 @@ class DatasetRetriever(Dataset):
 
     def load_image_and_boxes(self, index):
         image_id = self.image_ids[index]
-        image = cv2.imread(f'{path/"train"}/{image_id}.jpg', cv2.IMREAD_COLOR)
+        image = cv2.imread(f'{self.path/"train"}/{image_id}.jpg', cv2.IMREAD_COLOR)
         if image is None: 
-          image = cv2.imread(f'{path/"test"}/{image_id}.jpg', cv2.IMREAD_COLOR)
+          image = cv2.imread(f'{self.path/"test"}/{image_id}.jpg', cv2.IMREAD_COLOR)
         if image is None:
           raise Exception(f'{image_id} not found!')
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
@@ -124,11 +125,11 @@ class DatasetRetriever(Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def get_dataloaders(df_folds, marking,  config):
-    train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != config.fold].image_id.values,
+def get_dataloaders(df_folds, marking, config, path):
+    train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != config.fold].image_id.values, path=path,
                                     marking=marking, transforms=get_train_transforms(config.img_sz), test=False)
 
-    validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == config.fold].image_id.values,
+    validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == config.fold].image_id.values, path=path,
                                         marking=marking, transforms=get_valid_transforms(config.img_sz), test=True)
 
     train_loader = DataLoader(train_dataset,
@@ -136,6 +137,7 @@ def get_dataloaders(df_folds, marking,  config):
                               sampler=RandomSampler(train_dataset),
                               pin_memory=False, drop_last=True,
                               num_workers=config.num_workers, collate_fn=collate_fn)
+                              
     val_loader = DataLoader(validation_dataset, 
                             batch_size=config.batch_size,
                             sampler=SequentialSampler(validation_dataset),

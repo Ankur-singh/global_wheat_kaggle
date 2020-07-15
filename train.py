@@ -198,6 +198,7 @@ class Fitter:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', type=str, default='config.yaml', help='config.yaml path')
+    parser.add_argument('--path', type=str, default='.', help='base directory path')
     parser.add_argument('--train' , type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--folds' , type=str, default='train_folds.csv', help='folds.csv path')
     parser.add_argument('--weights', type=str, help='checkpoint.pt path')
@@ -212,7 +213,7 @@ if __name__ == "__main__":
     ## DATA
     df_folds = pd.read_csv(opt.folds)
     markings = pd.read_csv(opt.train)
-    train_loader, val_loader = get_dataloaders(df_folds, markings,  config)
+    train_loader, val_loader = get_dataloaders(df_folds, markings, config, opt.path)
     
     ## MODEL
     if opt.weights:
