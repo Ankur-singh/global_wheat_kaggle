@@ -8,6 +8,7 @@ import torch
 import yaml
 import random
 import argparse
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
@@ -214,6 +215,11 @@ if __name__ == "__main__":
     ## DATA
     df_folds = pd.read_csv(opt.folds)
     markings = pd.read_csv(opt.train)
+    bboxs = np.stack(markings['bbox'].apply(lambda x: np.fromstring(x[1:-1], sep=',')))
+    for i, column in enumerate(['x', 'y', 'w', 'h']):
+        markings[column] = bboxs[:,i]
+    markings.drop(columns=['bbox'], inplace=True)
+
     train_loader, val_loader = get_dataloaders(df_folds, markings, config, Path(opt.path))
     
     ## MODEL
