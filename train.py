@@ -73,6 +73,11 @@ class Fitter:
         self.config = config
         self.epoch = 0
 
+        SchedulerClass = torch.optim.lr_scheduler.ReduceLROnPlateau
+        scheduler_params = dict(mode='min', factor=0.5, patience=1, verbose=False, 
+                        threshold=0.0001, threshold_mode='abs', cooldown=0, 
+                        min_lr=1e-8, eps=1e-08)
+
         self.base_dir = config.folder
         if not os.path.exists(self.base_dir):
             os.makedirs(self.base_dir)
@@ -91,7 +96,7 @@ class Fitter:
         ] 
 
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.lr)
-        self.scheduler = config.SchedulerClass(self.optimizer, **config.scheduler_params)
+        self.scheduler = config.SchedulerClass(self.optimizer, **scheduler_params)
         self.log(f'Fitter prepared. Device is {self.device}')
 
     def fit(self, train_loader, validation_loader):
@@ -100,7 +105,7 @@ class Fitter:
             summary_loss = self.train_one_epoch(train_loader)
 
             self.log(f'[RESULT]: Train. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
-            self.save(f'{self.base_dir}/last-checkpoint-{config.fold}.bin')
+            self.save(f'{self.base_dir}/last-checkpoint-{self.config.fold}.bin')
 
             t = time.time()
             summary_loss = self.validation(validation_loader)
@@ -109,8 +114,8 @@ class Fitter:
             if summary_loss.avg < self.best_summary_loss:
                 self.best_summary_loss = summary_loss.avg
                 self.model.eval()
-                self.save(f'{self.base_dir}/best-checkpoint-{str(self.epoch).zfill(2)}epoch-{config.fold}.bin')
-                for path in sorted(glob(f'{self.base_dir}/best-checkpoint-*epoch-{config.fold}.bin'))[:-2]:
+                self.save(f'{self.base_dir}/best-checkpoint-{str(self.epoch).zfill(2)}epoch-{self.config.fold}.bin')
+                for path in sorted(glob(f'{self.base_dir}/best-checkpoint-*epoch-{self.config.fold}.bin'))[:-2]:
                     os.remove(path)
 
             if self.config.validation_scheduler:

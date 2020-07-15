@@ -79,8 +79,8 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
     df.drop(columns=['bbox'], inplace=True)
     
     ## Making folds form the new csv
-    create_folds(df, path, name='train_ext_folds.csv')
-    print(f'[FOLDS]   path: {path/"train_ext_folds.csv"} \n [MARKING] path: {path/"train_ext.csv"}')
+    create_folds(df, path, name='train_folds.csv')
+    print(f'[FOLDS]   path: {path/"train_folds.csv"} \n [MARKING] path: {path/"train_ext.csv"}')
 
 
 if __name__ == "__main__":
