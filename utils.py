@@ -34,7 +34,7 @@ def combine_csv(trn, sub, path, name='train_ext.csv'):
     params:
     ------
     trn, sub, path : path object/str
-    """"
+    """
     path = Path('.') if path is None else path
     
     trn_df = pd.read_csv(trn)
