@@ -9,6 +9,7 @@ import yaml
 import random
 import argparse
 import pandas as pd
+from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm_notebook as tqdm
 
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     ## DATA
     df_folds = pd.read_csv(opt.folds)
     markings = pd.read_csv(opt.train)
-    train_loader, val_loader = get_dataloaders(df_folds, markings, config, opt.path)
+    train_loader, val_loader = get_dataloaders(df_folds, markings, config, Path(opt.path))
     
     ## MODEL
     if opt.weights:
