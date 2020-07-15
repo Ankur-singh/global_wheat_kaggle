@@ -123,7 +123,7 @@ class DatasetRetriever(Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def get_dataloaders(df_folds, markings,  fold_number=0):
+def get_dataloaders(df_folds, marking,  fold_number=0):
     train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != fold_number].image_id.values,
                                     marking=marking, transforms=get_train_transforms(), test=False)
 

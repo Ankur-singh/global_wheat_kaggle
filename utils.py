@@ -4,6 +4,9 @@ import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 
+import warnings
+warnings.filterwarnings("ignore")
+
 def create_folds(df, path, name='train_folds.csv', k=5):
     """
     Take as dataframe with 'image_id' column and makes a .csv file, 
