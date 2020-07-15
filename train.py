@@ -19,6 +19,17 @@ from effdet.efficientdet import HeadNet
 import warnings
 warnings.filterwarnings("ignore")
 
+## Helper
+class DotConfig:
+  def __init__(self, cfg):
+    self._cfg = cfg
+  def __getattr__(self, k):
+    v = self._cfg[k]
+    if isinstance(v, dict):
+      return DotConfig(v)
+    return v
+
+
 ## Network
 def get_net(img_sz):
     config = get_efficientdet_config('tf_efficientdet_d5')
@@ -187,14 +198,17 @@ class Fitter:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='config.yaml', help='config.yaml path')
+    parser.add_argument('--cfg', type=str, default='config.yaml', help='config.yaml path')
     parser.add_argument('--train' , type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--folds' , type=str, default='train_folds.csv', help='folds.csv path')
     parser.add_argument('--weights', type=str, default='checkpoint.pt', help='checkpoint.pt path')
     opt = parser.parse_args()
 
     ## CONFIG
-    config = yaml.load(opt.config)
+    with open(opt.cfg, 'r') as stream:
+        config = yaml.load(stream, Loader=yaml.FullLoader)
+
+    config = DotConfig(config)
     
     ## DATA
     df_folds = pd.read_csv(opt.folds)
