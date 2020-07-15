@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 
 from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from effdet.efficientdet import HeadNet
