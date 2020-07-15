@@ -106,7 +106,7 @@ class Fitter:
         ] 
 
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.lr)
-        self.scheduler = config.SchedulerClass(self.optimizer, **scheduler_params)
+        self.scheduler = SchedulerClass(self.optimizer, **scheduler_params)
         self.log(f'Fitter prepared. Device is {self.device}')
 
     def fit(self, train_loader, validation_loader):
