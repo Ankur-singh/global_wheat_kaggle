@@ -2,7 +2,7 @@
 fold: 0
 n_epochs: 1
 img_sz: 640       # 512, 640, 768, ....
-folder: 'effdet5' # folder where are the model checkpoints & log files will be saved.
+folder: 'effdet5_weights' # folder where are the model checkpoints & log files will be saved.
 
 # medium
 lr: 0.0002
@@ -12,6 +12,7 @@ accumulation_steps: 4  # Gradient Accumulation
 mixed_precision: False # turn ON apex.amp (Automatic Mixed Precision)
 
 # high 
+dev: False
 verbose: False
 verbose_step: 1
 

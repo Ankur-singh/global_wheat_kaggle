@@ -239,7 +239,7 @@ if __name__ == "__main__":
     for i, column in enumerate(['x', 'y', 'w', 'h']):
         markings[column] = bboxs[:,i]
     markings.drop(columns=['bbox'], inplace=True)
-
+    
     train_loader, val_loader = get_dataloaders(df_folds, markings, config, Path(opt.path))
     
     ## MODEL

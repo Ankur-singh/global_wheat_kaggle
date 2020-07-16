@@ -22,13 +22,14 @@ def get_valid_transforms(img_sz):
 
 
 class DatasetRetriever(Dataset):
-    def __init__(self, marking, image_ids, path, transforms=None, test=False):
+    def __init__(self, marking, image_ids, path, transforms=None, test=False, dev=False):
         super().__init__()
         self.image_ids = image_ids
         self.marking = marking
         self.transforms = transforms
         self.test = test
         self.path = path
+        self.dev = dev
 
     def __getitem__(self, index: int):
         image_id = self.image_ids[index]
@@ -60,7 +61,11 @@ class DatasetRetriever(Dataset):
 
         return image, target, image_id
 
-    def __len__(self) -> int: return self.image_ids.shape[0]
+    def __len__(self) -> int: 
+        if self.dev:
+            return self.image_ids.shape[0]//10
+        else:
+            return self.image_ids.shape[0]
 
     def load_image_and_boxes(self, index):
         image_id = self.image_ids[index]
@@ -127,10 +132,10 @@ def collate_fn(batch):
 
 def get_dataloaders(df_folds, marking, config, path):
     train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != config.fold].image_id.values, path=path,
-                                    marking=marking, transforms=get_train_transforms(config.img_sz), test=False)
+                                    marking=marking, transforms=get_train_transforms(config.img_sz), test=False, dev=config.dev)
 
     validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == config.fold].image_id.values, path=path,
-                                        marking=marking, transforms=get_valid_transforms(config.img_sz), test=True)
+                                        marking=marking, transforms=get_valid_transforms(config.img_sz), test=True, dev=config.dev)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=config.batch_size,
