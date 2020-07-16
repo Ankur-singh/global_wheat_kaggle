@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold
 import warnings
 warnings.filterwarnings("ignore")
 
-def create_folds(df, path, name='train_folds.csv', k=5):
+def create_folds(df, path, name='train_folds.csv', k=5, output=True):
     """
     Take as dataframe with 'image_id' column and makes a .csv file, 
     using stratified k-folds based on bbox_count
@@ -29,9 +29,10 @@ def create_folds(df, path, name='train_folds.csv', k=5):
 
     path = Path('.') if path is None else path
     df_folds.to_csv(path/name, index=True)
-    print(f'[FOLDS CREATED] path: {path/name}')
+    if output:
+        print(f'[FOLDS CREATED] path: {path/name}')
 
-def combine_csv(trn, sub, path, name='train_ext.csv'):
+def combine_csv(trn, sub, path, name='train_ext.csv', output=True):
     """
     Combines train.csv file and submission.csv file
     params:
@@ -66,13 +67,14 @@ def combine_csv(trn, sub, path, name='train_ext.csv'):
     ext_df = ext_df[list(trn_df.columns)]
     ext_df = pd.concat([trn_df, ext_df], axis=0)
     ext_df.to_csv(path/name, index=False)
-    print(f'[COMBINED CSV] {trn} + {sub} -> {path/name}')
+    if output:
+        print(f'[COMBINED CSV] {trn} + {sub} -> {path/name}')
 
 def make_pseudo_labels(trn, sub, path=None, k=5):
     path = Path('.') if path is None else path
     
     ## combining train and submission files
-    combine_csv(trn, sub, path, name='train_ext.csv')
+    combine_csv(trn, sub, path, name='train_ext.csv', output=False)
 
     ## reading df
     df = pd.read_csv(path/'train_ext.csv')
@@ -82,7 +84,7 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
     df.drop(columns=['bbox'], inplace=True)
     
     ## Making folds form the new csv
-    create_folds(df, path, name='train_folds.csv')
+    create_folds(df, path, name='train_folds.csv', output=False)
     print(f'[FOLDS]   path: {path/"train_folds.csv"} \n [MARKING] path: {path/"train_ext.csv"}')
 
 
