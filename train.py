@@ -219,7 +219,7 @@ class Fitter:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', type=str, default='config.yaml', help='config.yaml path')
-    parser.add_argument('--path', type=str, default='.', help='base directory path')
+    parser.add_argument('--path', type=str, default='.', help='base_directory path where you have all data downloaded from kaggle')
     parser.add_argument('--train' , type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--folds' , type=str, default='train_folds.csv', help='folds.csv path')
     parser.add_argument('--weights', type=str, help='checkpoint.pt path')
