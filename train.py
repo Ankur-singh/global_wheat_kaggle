@@ -20,6 +20,13 @@ from effdet.efficientdet import HeadNet
 import warnings
 warnings.filterwarnings("ignore")
 
+mixed_precision = True
+try:  # Mixed precision training https://github.com/NVIDIA/apex
+    from apex import amp
+except:
+    print('Apex recommended for faster mixed precision training: https://github.com/NVIDIA/apex')
+    mixed_precision = False  # not installed
+
 ## Helper
 class DotConfig:
   def __init__(self, cfg):
@@ -108,21 +115,30 @@ class Fitter:
         ] 
 
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.lr)
+        
+        if mixed_precision:
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level='O1', verbosity=0)
+
         self.scheduler = SchedulerClass(self.optimizer, **scheduler_params)
         self.log(f'Fitter prepared. Device is {self.device}')
 
     def fit(self, train_loader, validation_loader):
-        for e in tqdm(range(self.config.n_epochs),  desc='Epochs'):
+        for e in range(self.config.n_epochs):
+            output = f'[EPOCH {str(self.epoch).zfill(2)}] '
             t = time.time()
             summary_loss = self.train_one_epoch(train_loader)
+            output += f'Train: {summary_loss.avg:.5f} '
 
             self.log(f'[RESULT]: Train. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
             self.save(f'{self.base_dir}/last-checkpoint-{self.config.fold}.bin')
 
             t = time.time()
             summary_loss = self.validation(validation_loader)
+            output += f'Valid: {summary_loss.avg:.5f} '
 
             self.log(f'[RESULT]: Val. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
+
+            print(output + f'time: {(time.time() - t):.5f}')
             if summary_loss.avg < self.best_summary_loss:
                 self.best_summary_loss = summary_loss.avg
                 self.model.eval()
@@ -168,15 +184,18 @@ class Fitter:
             
             loss, _, _ = self.model(images, boxes, labels)
             loss  = loss / accumulation_steps
-            loss.backward()
+
+            # Backward
+            if mixed_precision:
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else: loss.backward()
             
+            # update
             if (i+1) % accumulation_steps == 0:
               summary_loss.update(loss.detach().item(), accumulation_steps)
               self.optimizer.step()
               self.optimizer.zero_grad()
-        
-            # if self.config.step_scheduler :
-            #     self.scheduler.step()
 
             pbar.set_description(f'Train: {summary_loss.avg:.5f}')
 
