@@ -91,7 +91,6 @@ class Fitter:
     def __init__(self, model, device, config):
         self.config = config
         self.epoch = 0
-        mixed_precision = config.mixed_precision
 
         SchedulerClass = torch.optim.lr_scheduler.ReduceLROnPlateau
         scheduler_params = dict(mode='min', factor=0.5, patience=1, verbose=False, 
@@ -250,6 +249,8 @@ if __name__ == "__main__":
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     net.to(device)
+
+    mixed_precision = config.mixed_precision
     
     ## TRAINING
     fitter = Fitter(model=net, device=device, config=config)
