@@ -91,6 +91,7 @@ class Fitter:
     def __init__(self, model, device, config):
         self.config = config
         self.epoch = 0
+        mixed_precision = config.mixed_precision
 
         SchedulerClass = torch.optim.lr_scheduler.ReduceLROnPlateau
         scheduler_params = dict(mode='min', factor=0.5, patience=1, verbose=False, 
