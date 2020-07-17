@@ -132,3 +132,4 @@ dmypy.json
 # testing files
 testing/
 log.txt
+todo.txt

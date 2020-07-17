@@ -63,7 +63,7 @@ class DatasetRetriever(Dataset):
 
     def __len__(self) -> int: 
         if self.dev:
-            return self.image_ids.shape[0]//10
+            return self.image_ids.shape[0]//100
         else:
             return self.image_ids.shape[0]
 

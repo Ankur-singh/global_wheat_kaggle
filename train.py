@@ -2,6 +2,7 @@ from dataset import *
 
 import os
 import gc
+import math
 import time
 import pytz
 import torch
@@ -93,11 +94,6 @@ class Fitter:
         self.config = config
         self.epoch = 0
 
-        SchedulerClass = torch.optim.lr_scheduler.ReduceLROnPlateau
-        scheduler_params = dict(mode='min', factor=0.5, patience=1, verbose=False, 
-                        threshold=0.0001, threshold_mode='abs', cooldown=0, 
-                        min_lr=1e-8, eps=1e-08)
-
         self.base_dir = config.folder
         if not os.path.exists(self.base_dir):
             os.makedirs(self.base_dir)
@@ -108,26 +104,37 @@ class Fitter:
         self.model = model.to(device)
         self.device = device
 
-        param_optimizer = list(self.model.named_parameters())
-        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.001},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ] 
+         # Optimizer
+        pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+        for k, v in self.model.named_parameters():
+            if v.requires_grad:
+                if '.bias' in k:                        pg2.append(v)  # biases
+                elif '.weight' in k and '.bn' not in k: pg1.append(v)  # apply weight decay
+                else:                                   pg0.append(v)  # all else
 
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.lr)
+        self.optimizer = torch.optim.SGD(pg0, lr=config.lr, momentum=0.937, nesterov=True)
+        self.optimizer.add_param_group({'params': pg1, 'weight_decay': 5e-4})  # add pg1 with weight_decay
+        self.optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
+        print('Optimizer groups: %g .bias, %g conv.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
+        del pg0, pg1, pg2
+
+        # Scheduler https://arxiv.org/pdf/1812.01187.pdf
+        self.lf = lambda x: (((1 + math.cos(x * math.pi / config.n_epochs)) / 2) ** 1.0) * 0.9 + 0.1  # cosine
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=self.lf)
         
         if mixed_precision:
             self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level='O1', verbosity=0)
 
-        self.scheduler = SchedulerClass(self.optimizer, **scheduler_params)
         self.log(f'Fitter prepared. Device is {self.device}')
 
     def fit(self, train_loader, validation_loader):
         for e in range(self.config.n_epochs):
             output = f'[EPOCH {str(self.epoch).zfill(2)}] '
             t = time.time()
-            summary_loss = self.train_one_epoch(train_loader)
+            if self.epoch == 0:
+                summary_loss = self.train_one_epoch(train_loader, warmup=True)
+            else:
+                summary_loss = self.train_one_epoch(train_loader)
             output += f'Train: {summary_loss.avg:.5f} '
 
             self.log(f'[RESULT]: Train. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
@@ -139,7 +146,7 @@ class Fitter:
 
             self.log(f'[RESULT]: Val. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
 
-            print(output + f'time: {(time.time() - t):.5f}')
+            print(output + f'\n')
             if summary_loss.avg < self.best_summary_loss:
                 self.best_summary_loss = summary_loss.avg
                 self.model.eval()
@@ -148,7 +155,7 @@ class Fitter:
                     os.remove(path)
 
             if self.config.validation_scheduler:
-                self.scheduler.step(metrics=summary_loss.avg)
+                self.scheduler.step()
 
             self.epoch += 1
 
@@ -171,7 +178,7 @@ class Fitter:
 
         return summary_loss
 
-    def train_one_epoch(self, train_loader):
+    def train_one_epoch(self, train_loader, warmup=False):
         self.model.train()
         accumulation_steps = self.config.accumulation_steps
         summary_loss = AverageMeter()
@@ -182,6 +189,16 @@ class Fitter:
             batch_size = images.shape[0]
             boxes = [target['boxes'].to(self.device).float() for target in targets]
             labels = [target['labels'].to(self.device).float() for target in targets]
+
+            # Warmup
+            nw = self.config.warmup
+            if i <= nw:
+                xi = [0, nw]  # x interp
+                for j, x in enumerate(self.optimizer.param_groups):
+                    # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                    x['lr'] = np.interp(i, xi, [0.1 if j == 2 else 0.0, x['initial_lr'] * self.lf(self.epoch)])
+                    if 'momentum' in x:
+                        x['momentum'] = np.interp(i, xi, [0.9, 0.937]) # momentum, yolov5
             
             loss, _, _ = self.model(images, boxes, labels)
             loss  = loss / accumulation_steps
