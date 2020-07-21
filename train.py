@@ -90,7 +90,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 class Fitter:
-    def __init__(self, model, device, config):
+    def __init__(self, model, device, config, path=None):
         self.config = config
         self.epoch = 0
 
@@ -122,6 +122,9 @@ class Fitter:
         self.lf = lambda x: (((1 + math.cos(x * math.pi / config.n_epochs)) / 2) ** 1.0) * 0.9 + 0.1  # cosine
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=self.lf)
         
+        if path:
+            self.load_cp(path)
+        
         if mixed_precision:
             self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level='O1', verbosity=0)
 
@@ -138,7 +141,7 @@ class Fitter:
             output += f'Train: {summary_loss.avg:.5f} '
 
             self.log(f'[RESULT]: Train. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
-            self.save(f'{self.base_dir}/last-checkpoint-{self.config.fold}.bin')
+            self.save_cp(f'{self.base_dir}/last-checkpoint-{self.config.fold}.bin')
 
             t = time.time()
             summary_loss = self.validation(validation_loader)
@@ -226,6 +229,24 @@ class Fitter:
             'best_summary_loss': self.best_summary_loss,
             'epoch': self.epoch,
         }, path)
+
+    def save_cp(self, path):
+        self.model.eval()
+        torch.save({
+            'model_state_dict': self.model.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
+            'best_summary_loss': self.best_summary_loss,
+            'epoch': self.epoch,
+        }, path)
+
+    def load_cp(self):
+        checkpoint = torch.load(path)
+        self.model.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        self.best_summary_loss = checkpoint['best_summary_loss']
+        self.epoch = checkpoint['epoch'] + 1
         
     def log(self, message):
         if self.config.verbose:
@@ -260,10 +281,7 @@ if __name__ == "__main__":
     train_loader, val_loader = get_dataloaders(df_folds, markings, config, Path(opt.path))
     
     ## MODEL
-    if opt.weights:
-        net = load_net(opt.weights, config.img_sz)
-    else:
-        net = get_net(config.img_sz)
+    net = get_net(config.img_sz)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     net.to(device)
@@ -271,5 +289,8 @@ if __name__ == "__main__":
     mixed_precision = config.mixed_precision
     
     ## TRAINING
-    fitter = Fitter(model=net, device=device, config=config)
+    if opt.weights:
+        fitter = Fitter(model=net, device=device, config=config, path=opt.weights)
+    else:
+        fitter = Fitter(model=net, device=device, config=config)
     fitter.fit(train_loader, val_loader)

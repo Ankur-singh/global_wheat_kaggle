@@ -78,10 +78,11 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
 
     ## reading df
     df = pd.read_csv(path/'train_ext.csv')
-    bboxs = np.stack(df['bbox'].apply(lambda x: np.fromstring(x[1:-1], sep=',')))
-    for i, column in enumerate(['x', 'y', 'w', 'h']):
-        df[column] = bboxs[:,i]
-    df.drop(columns=['bbox'], inplace=True)
+    if 'area' not in df.columns:
+        bboxs = np.stack(df['bbox'].apply(lambda x: np.fromstring(x[1:-1], sep=',')))
+        for i, column in enumerate(['x', 'y', 'w', 'h']):
+            df[column] = bboxs[:,i]
+        df.drop(columns= ['bbox'], inplace=True)
     
     ## Making folds form the new csv
     create_folds(df, path, name='train_folds.csv', output=False)

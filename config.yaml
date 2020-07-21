@@ -5,7 +5,7 @@ img_sz: 640       # 512, 640, 768, ....
 folder: 'effdet5_weights' # folder where are the model checkpoints & log files will be saved.
 
 # medium
-lr: 0.01
+lr: 0.00001
 warmup: 2000
 num_workers: 2
 batch_size: 1
