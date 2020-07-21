@@ -51,26 +51,6 @@ def get_net(img_sz):
     
     return DetBenchTrain(net, config)
 
-def load_net(checkpoint_path, img_sz):
-    config = get_efficientdet_config('tf_efficientdet_d5')
-    net = EfficientDet(config, pretrained_backbone=False)
-
-    config.num_classes = 1
-    config.image_size=img_sz
-    net.class_net = HeadNet(config, num_outputs=config.num_classes, norm_kwargs=dict(eps=.001, momentum=.01))
-
-    checkpoint = torch.load(checkpoint_path)
-    if 'model_state_dict' in checkpoint.keys():
-        net.load_state_dict(checkpoint['model_state_dict']) # model 2 & 3
-    else:
-        net.load_state_dict(checkpoint)  # model 0 & 1
-
-    del checkpoint
-    gc.collect()
-
-    return DetBenchTrain(net, config) 
-
-
 ## Engine
 class AverageMeter(object):
     """Computes and stores the average and current value"""
