@@ -240,7 +240,7 @@ class Fitter:
             'epoch': self.epoch,
         }, path)
 
-    def load_cp(self):
+    def load_cp(self, path):
         checkpoint = torch.load(path)
         self.model.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
