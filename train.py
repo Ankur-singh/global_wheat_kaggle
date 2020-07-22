@@ -100,7 +100,7 @@ class Fitter:
 
         # Scheduler https://arxiv.org/pdf/1812.01187.pdf
         self.lf = lambda x: (((1 + math.cos(x * math.pi / config.n_epochs)) / 2) ** 1.0) * 0.9 + 0.1  # cosine
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=self.lf)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.95, last_epoch=-1)
         
         if path:
             self.load_cp(path)
