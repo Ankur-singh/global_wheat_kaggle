@@ -1,7 +1,11 @@
+import gc
 import re
 import ast
+import argparse
 import numpy as np
 import pandas as pd
+from pathlib import Path
+import joblib
 
 import numba
 from numba import jit
@@ -9,7 +13,10 @@ from numba import jit
 from typing import List, Union, Tuple
 from torch.utils.data import DataLoader
 
-from utils import DatasetRetriever
+from effdet import get_efficientdet_config, EfficientDet, DetBenchEval
+from effdet.efficientdet import HeadNet
+
+from dataset import *
 
 ## Don't touch
 @jit(nopython=True)
@@ -172,7 +179,7 @@ def get_data_loader(opt):
   marking.drop(columns=['bbox'], inplace=True)
 
   dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == opt.fold].image_id.values, 
-                             path=opt.path, marking=marking, transforms=get_transforms(img_sz))
+                             path=Path(opt.path), marking=marking, transforms=get_valid_transforms(opt.sz))
 
   data_loader = DataLoader(dataset, batch_size=2,
                           pin_memory=False, shuffle=False,
@@ -214,12 +221,6 @@ def make_predictions(net, images):
             predictions.append({'boxes': boxes, 'scores': scores})
     return predictions  
 
-def run_wbf(boxes, scores, image_size=img_sz, iou_thr=0.44, skip_box_thr=0.43, weights=None):
-    labels = [np.ones(len(score)).tolist() for score in scores]
-    boxes, scores, labels = weighted_boxes_fusion(boxes, scores, labels, weights=None, iou_thr=iou_thr, skip_box_thr=skip_box_thr)
-    boxes = boxes*(image_size-1)
-    return boxes, scores, labels
-
 def get_all(net, data_loader):
     pd_bboxes = []
     pd_scores = []
@@ -242,31 +243,35 @@ def evalutate(net, data_loader, th=0.25):
     pd_bboxes, pd_scores, gt_bboxes = get_all(net, data_loader)
     assert len(pd_bboxes) == len(pd_scores) == len(gt_bboxes), "You surely did something wrong!"
 
+    print(f'predictions completed. Calulating scores . . . ')
+
     for bbox, score, gt_bbox in zip(pd_bboxes, pd_scores, gt_bboxes):
-    # TODO: apply thresholding
-    index = score > th
-    
-    preds    = bbox[index]    # shape: (#predicted box, 4)
-    scores   = score[index]   # shape: (#predicted box, )
-    gt_boxes = gt_bbox # shape: (#ground-truth box, 4)
+      # TODO: apply thresholding
+      index = score > th
+      
+      preds    = bbox[index]    # shape: (#predicted box, 4)
+      scores   = score[index]   # shape: (#predicted box, )
+      gt_boxes = gt_bbox # shape: (#ground-truth box, 4)
 
-    preds_sorted_idx = np.argsort(scores)[::-1]
-    preds_sorted = preds[preds_sorted_idx]
+      preds_sorted_idx = np.argsort(scores)[::-1]
+      preds_sorted = preds[preds_sorted_idx]
 
-    for idx, image in enumerate(images):
-        image_precision = calculate_image_precision(preds_sorted, gt_boxes, thresholds=iou_thresholds, form='coco')
-        validation_image_precisions.append(image_precision)
+      image_precision = calculate_image_precision(preds_sorted, gt_boxes, thresholds=iou_thresholds, form='coco')
+      validation_image_precisions.append(image_precision)
 
     print(f"Validation IOU (for {th}): {np.mean(validation_image_precisions):.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--fold', type=int, default=0, help='fold to evaluate')
+    parser.add_argument('--sz', type=int, default=512, help='image size')
     parser.add_argument('--path', type=str, default='.', help='base_directory path where you have all data downloaded from kaggle')
     parser.add_argument('--train' , type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--folds' , type=str, default='train_folds.csv', help='folds.csv path')
     parser.add_argument('--weights', type=str, help='checkpoint.pt path')
     opt = parser.parse_args()
+
+    img_sz = opt.sz
     
     data_loader = get_data_loader(opt)
 
