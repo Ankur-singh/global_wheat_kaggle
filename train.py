@@ -66,6 +66,11 @@ class Net(pl):
       loss, _, _ = self.model(images, boxes, labels)
       return {'loss': loss}
 
+    def training_epoch_end(self, train_output):
+        train_epoch_loss = torch.stack([x['loss'] for x in train_output]).mean()
+        return {'train_loss': train_epoch_loss,
+                'log': {'train_loss': train_epoch_loss}}
+
     def validation_step(self, batch, batch_idx):
       images, targets, image_ids = batch
       images = torch.stack(images)
@@ -74,12 +79,19 @@ class Net(pl):
       labels = [target['labels'].float() for target in targets]
 
       loss, _, _ = self.model(images, boxes, labels)
-      return {'val_loss': loss}
+      return {'loss': loss}
+
+    def validation_epoch_end(self, val_output):
+        val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
+        return {'val_loss': val_epoch_loss,
+                'log': {'val_loss': val_epoch_loss}}
 
     def configure_optimizers(self):
       optimizer = load_obj(self.config.optimizer.class_name)(self.model.parameters(), **self.config.optimizer.params)
       scheduler = load_obj(self.config.scheduler.class_name)(optimizer, **self.config.scheduler.params)
-      return [optimizer], [scheduler]
+      return [optimizer], [{"scheduler": scheduler,
+                            "interval" : self.config.scheduler.step,
+                            "monitor"  : self.config.scheduler.monitor}]
 
     def prepare_data(self):
       df_folds = pd.read_csv(self.config.data.train_folds)
@@ -128,14 +140,17 @@ if __name__ == "__main__":
     model = get_net(conf.data.img_sz)
     net = Net(model, conf)
 
-    checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}'+'/{epoch}-{val_loss:.2f}')
-    early_stopping = EarlyStopping('val_loss')
-    tb_logger = TensorBoardLogger(save_dir=conf.logs_path)
+    if conf.pretrained:
+        trainer = Trainer(resume_from_checkpoint=conf.pretrained)
+    else:
+        checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}'+'/{epoch}-{val_loss:.2f}')
+        early_stopping = EarlyStopping('val_loss')
+        tb_logger = TensorBoardLogger()
 
-    trainer = Trainer(logger = [tb_logger],
-                      early_stop_callback = early_stopping,
-                      checkpoint_callback = checkpoint_callback,
-                      **conf.trainer)
+        trainer = Trainer(logger = [tb_logger],
+                        early_stop_callback = early_stopping,
+                        checkpoint_callback = checkpoint_callback,
+                        **conf.trainer)
 
     trainer.fit(net)
 
