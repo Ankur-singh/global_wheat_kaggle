@@ -53,6 +53,7 @@ class Net(pl):
       super(Net, self).__init__()
       self.config = config
       self.model = model
+      self.hparams = self.config
 
     def forward(self, x, *args, **kwargs):
       return self.model(x)
