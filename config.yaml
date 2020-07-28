@@ -23,8 +23,11 @@ data:
 
 scheduler:
     class_name: torch.optim.lr_scheduler.ReduceLROnPlateau
-    params:        
+    params:
+        factor: 0.1
+        patience: 1   
 
 optimizer:
     class_name: torch.optim.Adam
-    params: 
+    params:
+        weight_decay: 0.001

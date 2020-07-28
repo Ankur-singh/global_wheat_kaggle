@@ -1,10 +1,15 @@
+import ast
 import torch
 import importlib
 import numpy as np
 import pandas as pd
 from typing import Any
 from torch.utils.data import DataLoader
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.core.lightning import LightningModule as pl
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from effdet.efficientdet import HeadNet
@@ -124,7 +129,7 @@ if __name__ == "__main__":
     model = get_net(conf.data.img_sz)
     net = Net(model, conf)
 
-    checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}/{epoch}-{val_loss:.2f}')
+    checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}'+'/{epoch}-{val_loss:.2f}')
     early_stopping = EarlyStopping('val_loss')
     tb_logger = TensorBoardLogger(save_dir=conf.logs_path)
 
