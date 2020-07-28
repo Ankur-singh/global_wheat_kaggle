@@ -1,5 +1,6 @@
 import ast
 import torch
+import requests
 import importlib
 import numpy as np
 import pandas as pd
@@ -68,6 +69,11 @@ class Net(pl):
 
     def training_epoch_end(self, train_output):
         train_epoch_loss = torch.stack([x['loss'] for x in train_output]).mean()
+        if self.config.notify:
+            url = 'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
+            data = {'chat_id': str(self.config.chat_id), 'text': f'You `train_loss` is {train_epoch_loss}'}
+            requests.post(url, data)
+
         return {'train_loss': train_epoch_loss,
                 'log': {'train_loss': train_epoch_loss}}
 
@@ -83,6 +89,11 @@ class Net(pl):
 
     def validation_epoch_end(self, val_output):
         val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
+        if self.config.notify:
+            url = f'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
+            data = {'chat_id': str(self.config.chat_id), 'text': f'You `val_loss` is {val_epoch_loss}'}
+            requests.post(url, data)
+
         return {'val_loss': val_epoch_loss,
                 'log': {'val_loss': val_epoch_loss}}
 
@@ -136,6 +147,10 @@ if __name__ == "__main__":
     conf = OmegaConf.load('config.yaml')
     cli_conf = OmegaConf.from_cli()
     conf = OmegaConf.merge(conf, cli_conf)
+
+    if conf.notify:
+        assert conf.bot_token, "If you want to get notified, you should specify your bot_token"
+        assert conf.chat_id, "If you want to get notified, you should specify your chat_id"
 
     model = get_net(conf.data.img_sz)
     net = Net(model, conf)
