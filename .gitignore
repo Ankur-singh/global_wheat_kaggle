@@ -133,3 +133,4 @@ dmypy.json
 testing/
 log.txt
 todo.txt
+.vscode/

@@ -1,11 +1,34 @@
-import argparse
+import ast
+import importlib
 import numpy as np
 import pandas as pd
+from typing import Any
 from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 
 import warnings
 warnings.filterwarnings("ignore")
+
+def load_obj(obj_path: str, default_obj_path: str = "") -> Any:
+    """Extract an object from a given path.
+        Args:
+            obj_path: Path to an object to be extracted, including the object name.
+            default_obj_path: Default object path.
+        Returns:
+            Extracted object.
+        Raises:
+            AttributeError: When the object does not have the given named attribute.
+    """
+    obj_path_list = obj_path.rsplit(".", 1)
+    obj_path = obj_path_list.pop(0) if len(obj_path_list) > 1 else default_obj_path
+    obj_name = obj_path_list[0]
+    module_obj = importlib.import_module(obj_path)
+    if not hasattr(module_obj, obj_name):
+        raise AttributeError(
+            "Object `{}` cannot be loaded from `{}`.".format(obj_name, obj_path)
+        )
+    return getattr(module_obj, obj_name)
+
 
 def create_folds(df, path, name='train_folds.csv', k=5, output=True):
     """
@@ -78,11 +101,10 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
 
     ## reading df
     df = pd.read_csv(path/'train_ext.csv')
-    if 'area' not in df.columns:
-        bboxs = np.stack(df['bbox'].apply(lambda x: np.fromstring(x[1:-1], sep=',')))
-        for i, column in enumerate(['x', 'y', 'w', 'h']):
-            df[column] = bboxs[:,i]
-        df.drop(columns= ['bbox'], inplace=True)
+    bboxs = np.stack(df['bbox'].apply(lambda x: ast.literal_eval(x)))
+    for i, column in enumerate(['x', 'y', 'w', 'h']):
+        df[column] = bboxs[:,i]
+    df.drop(columns= ['bbox'], inplace=True)
     
     ## Making folds form the new csv
     create_folds(df, path, name='train_folds.csv', output=False)
@@ -90,6 +112,8 @@ def make_pseudo_labels(trn, sub, path=None, k=5):
 
 
 if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--trn', type=str, default='data/train.csv', help='train.csv path')
     parser.add_argument('--sub', type=str, default='submission_best.csv', help='submission.csv path')

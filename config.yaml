@@ -1,21 +1,30 @@
-# low
-fold: 0
-n_epochs: 1
-img_sz: 640       # 512, 640, 768, ....
-folder: 'effdet5_weights' # folder where are the model checkpoints & log files will be saved.
+cp_path: effDet/saved_weights/
+logs_path: effDet/logs
 
-# medium
-lr: 0.00001
-warmup: 2000
-num_workers: 2
-batch_size: 1
-accumulation_steps: 4  # Gradient Accumulation
-mixed_precision: False # turn ON apex.amp (Automatic Mixed Precision)
+trainer:
+    accumulate_grad_batches: 8
+    gpus: 1
+    gradient_clip_val: 0.5
+    max_epochs: 10
+    num_sanity_val_steps: 0
+    profiler: false
+    weights_summary: null
+    fast_dev_run: True
+    auto_lr_find: True
 
-# high 
-dev: False
-verbose: False
-verbose_step: 1
+data:
+    train_folds: train_folds.csv
+    train_ext: train_ext.csv
+    path: data
+    fold: 0
+    img_sz: 640
+    batch_size: 1
+    num_workers: 2
 
-step_scheduler: False       # do scheduler.step after optimizer.step
-validation_scheduler: True  # do scheduler.step after validation stage loss
+scheduler:
+    class_name: torch.optim.lr_scheduler.ReduceLROnPlateau
+    params:        
+
+optimizer:
+    class_name: torch.optim.Adam
+    params: 

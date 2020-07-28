@@ -20,39 +20,33 @@ def get_valid_transforms(img_sz):
                       p=1.0, 
                       bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
 
+def collate_fn(batch):
+    return tuple(zip(*batch))
 
 class DatasetRetriever(Dataset):
-    def __init__(self, marking, image_ids, path, transforms=None, test=False, dev=False):
+    def __init__(self, marking, image_ids, path, transforms=None, test=False):
         super().__init__()
         self.image_ids = image_ids
         self.marking = marking
         self.transforms = transforms
         self.test = test
         self.path = path
-        self.dev = dev
 
     def __getitem__(self, index: int):
-        image_id = self.image_ids[index]
+
         if self.test or random.random() > 0.5:
             image, boxes = self.load_image_and_boxes(index)
         else:
             image, boxes = self.load_cutmix_image_and_boxes(index)
 
-        # there is only one class
-        labels = torch.ones((boxes.shape[0],), dtype=torch.int64)
+        image_id = self.image_ids[index]
+        labels = torch.ones((boxes.shape[0],), dtype=torch.int64) # there is only one class
         
-        target = {}
-        target['boxes'] = boxes
-        target['labels'] = labels
-        target['image_id'] = torch.tensor([index])
-
+        target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index])}
+        
         if self.transforms:
             for i in range(10):
-                sample = self.transforms(**{
-                    'image': image,
-                    'bboxes': target['boxes'],
-                    'labels': labels
-                })
+                sample = self.transforms(**{'image': image, 'labels': labels, 'bboxes': target['boxes']})
                 if len(sample['bboxes']) > 0:
                     image = sample['image']
                     target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
@@ -127,26 +121,3 @@ class DatasetRetriever(Dataset):
         result_boxes = result_boxes[np.where((result_boxes[:,2]-result_boxes[:,0])*(result_boxes[:,3]-result_boxes[:,1]) > 0)]
         return result_image, result_boxes
 
-def collate_fn(batch):
-    return tuple(zip(*batch))
-
-def get_dataloaders(df_folds, marking, config, path):
-    train_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] != config.fold].image_id.values, path=path,
-                                    marking=marking, transforms=get_train_transforms(config.img_sz), test=False, dev=config.dev)
-
-    validation_dataset = DatasetRetriever(image_ids=df_folds[df_folds['fold'] == config.fold].image_id.values, path=path,
-                                        marking=marking, transforms=get_valid_transforms(config.img_sz), test=True, dev=config.dev)
-
-    train_loader = DataLoader(train_dataset,
-                              batch_size=config.batch_size,
-                              sampler=RandomSampler(train_dataset),
-                              pin_memory=False, drop_last=True,
-                              num_workers=config.num_workers, collate_fn=collate_fn)
-                              
-    val_loader = DataLoader(validation_dataset, 
-                            batch_size=config.batch_size,
-                            sampler=SequentialSampler(validation_dataset),
-                            pin_memory=False, shuffle=False,
-                            num_workers=config.num_workers, collate_fn=collate_fn)   
-
-    return train_loader, val_loader
