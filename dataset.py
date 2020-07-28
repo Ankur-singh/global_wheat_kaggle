@@ -2,6 +2,7 @@ import cv2
 import random
 import torch
 import numpy as np
+from pathlib import Path
 import albumentations as A
 from torch.utils.data import Dataset, DataLoader
 from albumentations.pytorch import ToTensor
@@ -30,7 +31,7 @@ class DatasetRetriever(Dataset):
         self.marking = marking
         self.transforms = transforms
         self.test = test
-        self.path = path
+        self.path = Path(path)
 
     def __getitem__(self, index: int):
 
@@ -56,10 +57,7 @@ class DatasetRetriever(Dataset):
         return image, target, image_id
 
     def __len__(self) -> int: 
-        if self.dev:
-            return self.image_ids.shape[0]//100
-        else:
-            return self.image_ids.shape[0]
+        return self.image_ids.shape[0]
 
     def load_image_and_boxes(self, index):
         image_id = self.image_ids[index]

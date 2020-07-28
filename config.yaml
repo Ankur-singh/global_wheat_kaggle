@@ -1,16 +1,17 @@
-cp_path: effDet/saved_weights/
-logs_path: effDet/logs
+cp_path: saved/weights/
+logs_path: saved/logs
 
 trainer:
     accumulate_grad_batches: 8
     gpus: 1
+    learning_rate: 
     gradient_clip_val: 0.5
     max_epochs: 10
     num_sanity_val_steps: 0
     profiler: false
     weights_summary: null
     fast_dev_run: True
-    auto_lr_find: True
+    auto_lr_find: False
 
 data:
     train_folds: train_folds.csv
@@ -31,3 +32,4 @@ optimizer:
     class_name: torch.optim.Adam
     params:
         weight_decay: 0.001
+        lr: 000.1

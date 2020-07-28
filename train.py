@@ -105,7 +105,6 @@ class Net(pl):
     def train_dataloader(self):
       train_loader = DataLoader(self.train_dataset,
                               batch_size=self.config.data.batch_size,
-                              sampler=RandomSampler(self.train_dataset),
                               pin_memory=False, drop_last=True,
                               num_workers=self.config.data.num_workers, collate_fn=collate_fn)
       
