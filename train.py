@@ -145,7 +145,7 @@ if __name__ == "__main__":
     else:
         checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}'+'/{epoch}-{val_loss:.2f}')
         early_stopping = EarlyStopping('val_loss')
-        tb_logger = TensorBoardLogger()
+        tb_logger = TensorBoardLogger(conf.logs_path)
 
         trainer = Trainer(logger = [tb_logger],
                         early_stop_callback = early_stopping,

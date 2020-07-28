@@ -1,13 +1,12 @@
 cp_path: saved/weights/
+logs_path: saved/logs
 
 trainer:
     gpus: 1
-    limit_train_batches: 0.05 
-    limit_val_batches: 0.5
     accumulate_grad_batches: 8
     gradient_clip_val: 0.5
     max_epochs: 10
-    fast_dev_run: True
+    fast_dev_run: False
     auto_lr_find: False
 
 data:
@@ -30,5 +29,5 @@ scheduler:
 optimizer:
     class_name: torch.optim.Adam
     params:
-        weight_decay: 0.001
+        weight_decay: 0.005
         lr: 0.001
