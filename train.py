@@ -6,6 +6,9 @@ from typing import Any
 from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule as pl
 
+from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
+from effdet.efficientdet import HeadNet
+
 ## custom
 from dataset import DatasetRetriever, get_train_transforms, get_valid_transforms, collate_fn
 
@@ -113,10 +116,10 @@ class Net(pl):
 
 if __name__ == "__main__":
 
-    import sys
-    sys.path.insert(0, 'omegaconf')
     from omegaconf import OmegaConf
     conf = OmegaConf.load('config.yaml')
+    cli_conf = OmegaConf.from_cli()
+    conf = OmegaConf.merge(conf, cli_conf)
 
     model = get_net(conf.data.img_sz)
     net = Net(model, conf)
