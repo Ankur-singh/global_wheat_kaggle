@@ -72,7 +72,7 @@ class Net(pl):
         train_epoch_loss = torch.stack([x['loss'] for x in train_output]).mean()
         if self.config.notify:
             url = f'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
-            data = {'chat_id': str(self.config.chat_id), 'text': f'You `train_loss` is {train_epoch_loss}'}
+            data = {'chat_id': str(self.config.chat_id), 'text': f'{self.config.name}: You `train_loss` is {train_epoch_loss}'}
             requests.post(url, data)
 
         return {'train_loss': train_epoch_loss,
@@ -92,7 +92,7 @@ class Net(pl):
         val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
         if self.config.notify:
             url = f'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
-            data = {'chat_id': str(self.config.chat_id), 'text': f'You `val_loss` is {val_epoch_loss}'}
+            data = {'chat_id': str(self.config.chat_id), 'text': f'{self.config.name}: You `val_loss` is {val_epoch_loss}'}
             requests.post(url, data)
 
         return {'val_loss': val_epoch_loss,
