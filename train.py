@@ -71,7 +71,7 @@ class Net(pl):
     def training_epoch_end(self, train_output):
         train_epoch_loss = torch.stack([x['loss'] for x in train_output]).mean()
         if self.config.notify:
-            url = 'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
+            url = f'https://api.telegram.org/bot{self.config.bot_token}/sendMessage'
             data = {'chat_id': str(self.config.chat_id), 'text': f'You `train_loss` is {train_epoch_loss}'}
             requests.post(url, data)
 
