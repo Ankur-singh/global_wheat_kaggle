@@ -18,6 +18,7 @@ data:
     batch_size: 2
     num_workers: 2
 
+# Best scheduler configuration so far in almost all the testing
 scheduler:
     class_name: torch.optim.lr_scheduler.ReduceLROnPlateau
     params:
