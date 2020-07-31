@@ -53,7 +53,7 @@ class DatasetRetriever(Dataset):
                 if len(sample['bboxes']) > 0:
                     image = sample['image']
                     target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
-                    # target['boxes'][:,[0,1,2,3]] = target['boxes'][:,[1,0,3,2]]  #yxyx: be warning
+                    target['boxes'][:,[0,1,2,3]] = target['boxes'][:,[1,0,3,2]]  #yxyx: be warning
                     break
 
         return image, target, image_id
@@ -74,7 +74,7 @@ class DatasetRetriever(Dataset):
         boxes = records[['x', 'y', 'w', 'h']].values
         boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
         boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
-        return image, boxes
+        return image, boxes # xyxy
 
     def load_cutmix_image_and_boxes(self, index, imsize=1024):
         """ 
