@@ -52,7 +52,7 @@ class Net(pl):
     def training_epoch_end(self, train_output):
         train_epoch_loss = torch.stack([x['loss'] for x in train_output]).mean()
         if self.config.notify:
-            send_message('You `train_loss` is {train_epoch_loss}')
+            send_message(f'You `train_loss` is {train_epoch_loss}')
 
         return {'train_loss': train_epoch_loss,
                 'log': {'train_loss': train_epoch_loss}}
@@ -70,7 +70,7 @@ class Net(pl):
     def validation_epoch_end(self, val_output):
         val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
         if self.config.notify:
-            send_message('You `train_loss` is {val_epoch_loss}')
+            send_message(f'You `train_loss` is {val_epoch_loss}')
 
         return {'val_loss': val_epoch_loss,
                 'log': {'val_loss': val_epoch_loss}}
