@@ -5,9 +5,9 @@ import torch
 import numpy as np
 from pathlib import Path
 import albumentations as A
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from albumentations.pytorch import ToTensor
-from torch.utils.data.sampler import SequentialSampler, RandomSampler
+
 
 def get_train_transforms(img_sz):
     return A.Compose([A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.6),
@@ -18,13 +18,16 @@ def get_train_transforms(img_sz):
                       ToTensor()], p=1.0, 
                       bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
 
+
 def get_valid_transforms(img_sz):
-    return A.Compose([A.Resize(height=img_sz, width=img_sz, p=1.0),ToTensor()], 
-                      p=1.0, 
-                      bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
+    return A.Compose([A.Resize(height=img_sz, width=img_sz, p=1.0), ToTensor()], 
+                    p=1.0, 
+                    bbox_params=A.BboxParams(format='pascal_voc', min_area=0, min_visibility=0, label_fields=['labels']))
+
 
 def collate_fn(batch):
     return tuple(zip(*batch))
+
 
 class DatasetRetriever(Dataset):
     def __init__(self, marking, image_ids, path, transforms=None, test=False):
@@ -43,17 +46,17 @@ class DatasetRetriever(Dataset):
             image, boxes = self.load_cutmix_image_and_boxes(index)
 
         image_id = self.image_ids[index]
-        labels = torch.ones((boxes.shape[0],), dtype=torch.int64) # there is only one class
-        
+        labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # there is only one class
+
         target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index])}
-        
+
         if self.transforms:
             for i in range(10):
                 sample = self.transforms(**{'image': image, 'labels': labels, 'bboxes': target['boxes']})
                 if len(sample['bboxes']) > 0:
                     image = sample['image']
                     target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
-                    target['boxes'][:,[0,1,2,3]] = target['boxes'][:,[1,0,3,2]]  #yxyx: be warning
+                    target['boxes'][:, [0, 1, 2, 3]] = target['boxes'][:, [1, 0, 3, 2]]  # yxyx: be warning
                     break
 
         return image, target, image_id
@@ -65,9 +68,9 @@ class DatasetRetriever(Dataset):
         image_id = self.image_ids[index]
         image = cv2.imread(f'{self.path/"train"}/{image_id}.jpg', cv2.IMREAD_COLOR)
         if image is None: 
-          image = cv2.imread(f'{self.path/"test"}/{image_id}.jpg', cv2.IMREAD_COLOR)
+            image = cv2.imread(f'{self.path/"test"}/{image_id}.jpg', cv2.IMREAD_COLOR)
         if image is None:
-          raise Exception(f'{image_id} not found!')
+            raise Exception(f'{image_id} not found!')
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
         image /= 255.0
         records = self.marking[self.marking['image_id'] == image_id]
@@ -118,12 +121,10 @@ class DatasetRetriever(Dataset):
         result_boxes = np.concatenate(result_boxes, 0)
         np.clip(result_boxes[:, 0:], 0, 2 * s, out=result_boxes[:, 0:])
         result_boxes = result_boxes.astype(np.int32)
-        result_boxes = result_boxes[np.where((result_boxes[:,2]-result_boxes[:,0])*(result_boxes[:,3]-result_boxes[:,1]) > 0)]
+        result_boxes = result_boxes[np.where((result_boxes[:, 2]-result_boxes[:, 0])*(result_boxes[:, 3]-result_boxes[:, 1]) > 0)]
         return result_image, result_boxes
 
-
-
-    def random_affine(self, img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, border=(0, 0)):
+    def random_affine(self, img, targets=(), degrees=10, translate=.1, scale=0.1, shear=10, border=(0, 0)):
         # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
         # https://medium.com/uruvideo/dataset-augmentation-with-random-homographies-a8f4b44830d4
         # targets = [cls, xyxy]
@@ -177,7 +178,6 @@ class DatasetRetriever(Dataset):
             targets[:, 1:5] = xy[i]
 
         return img, targets
-
 
     def augment_hsv(self, img, hgain=0.5, sgain=0.5, vgain=0.5):
         r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains

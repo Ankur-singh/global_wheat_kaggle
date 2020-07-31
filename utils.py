@@ -1,4 +1,5 @@
 import ast
+import requests
 import importlib
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from sklearn.model_selection import StratifiedKFold
 
 import warnings
 warnings.filterwarnings("ignore")
+
 
 def load_obj(obj_path: str, default_obj_path: str = "") -> Any:
     """Extract an object from a given path.
@@ -28,6 +30,12 @@ def load_obj(obj_path: str, default_obj_path: str = "") -> Any:
             "Object `{}` cannot be loaded from `{}`.".format(obj_name, obj_path)
         )
     return getattr(module_obj, obj_name)
+
+
+def send_message(msg, name, chat_id, bot_token):
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    data = {'chat_id': str(chat_id), 'text': f'{name}: {msg}'}
+    requests.post(url, data)
 
 
 def create_folds(df, path, name='train_folds.csv', k=5, output=True):
@@ -55,6 +63,7 @@ def create_folds(df, path, name='train_folds.csv', k=5, output=True):
     if output:
         print(f'[FOLDS CREATED] path: {path/name}')
 
+
 def combine_csv(trn, sub, path, name='train_ext.csv', output=True):
     """
     Combines train.csv file and submission.csv file
@@ -72,7 +81,7 @@ def combine_csv(trn, sub, path, name='train_ext.csv', output=True):
         scores = list(map(float, scores))
 
         boxes = []
-        for i in range(0,len(scores),5):
+        for i in range(0, len(scores), 5):
             boxes.append(str(scores[i+1: i+5]))
 
         tmp = pd.DataFrame(boxes, columns=['bbox'])
@@ -84,7 +93,7 @@ def combine_csv(trn, sub, path, name='train_ext.csv', output=True):
             ext_df = pd.concat([ext_df, tmp], axis=0)
 
     ext_df['source'] = 'ankur'
-    ext_df['width']  = 1024
+    ext_df['width'] = 1024
     ext_df['height'] = 1024
 
     ext_df = ext_df[list(trn_df.columns)]
@@ -93,20 +102,21 @@ def combine_csv(trn, sub, path, name='train_ext.csv', output=True):
     if output:
         print(f'[COMBINED CSV] {trn} + {sub} -> {path/name}')
 
+
 def make_pseudo_labels(trn, sub, path=None, k=5):
     path = Path('.') if path is None else path
-    
-    ## combining train and submission files
+
+    # combining train and submission files
     combine_csv(trn, sub, path, name='train_ext.csv', output=False)
 
-    ## reading df
+    # reading df
     df = pd.read_csv(path/'train_ext.csv')
     bboxs = np.stack(df['bbox'].apply(lambda x: ast.literal_eval(x)))
     for i, column in enumerate(['x', 'y', 'w', 'h']):
-        df[column] = bboxs[:,i]
-    df.drop(columns= ['bbox'], inplace=True)
-    
-    ## Making folds form the new csv
+        df[column] = bboxs[:, i]
+    df.drop(columns=['bbox'], inplace=True)
+
+    # Making folds form the new csv
     create_folds(df, path, name='train_folds.csv', output=False)
     print(f'[FOLDS]   path: {path/"train_folds.csv"} \n[MARKING] path: {path/"train_ext.csv"}')
 
@@ -120,4 +130,3 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     make_pseudo_labels(opt.trn, opt.sub)
-
