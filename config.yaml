@@ -40,8 +40,8 @@ scheduler:
     params:
         pct_start: 0.3
         epochs: *e
-        steps_per_epoch: 211
         max_lr: 0.001
+    steps_per_epoch: True
     step: step
     monitor: val_loss 
     
