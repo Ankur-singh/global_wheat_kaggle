@@ -1,14 +1,25 @@
+import os
 import ast
+import psutil
+import humanize
 import requests
 import importlib
 import numpy as np
 import pandas as pd
+import GPUtil as GPU
 from typing import Any
 from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 
 import warnings
 warnings.filterwarnings("ignore")
+
+def printm():
+    GPUs = GPU.getGPUs()
+    gpu = GPUs[0]
+    process = psutil.Process(os.getpid())
+    print("Gen RAM Free: " + humanize.naturalsize( psutil.virtual_memory().available ), " | Proc size: " + humanize.naturalsize( process.memory_info().rss))
+    print("GPU RAM Free: {0:.0f}MB | Used: {1:.0f}MB | Util {2:3.0f}% | Total {3:.0f}MB".format(gpu.memoryFree, gpu.memoryUsed, gpu.memoryUtil*100, gpu.memoryTotal))
 
 
 def load_obj(obj_path: str, default_obj_path: str = "") -> Any:

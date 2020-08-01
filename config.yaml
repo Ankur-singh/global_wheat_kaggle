@@ -5,7 +5,7 @@ trainer:
     gpus: 1
     accumulate_grad_batches: 8
     gradient_clip_val: 0.5
-    max_epochs: 20
+    max_epochs: &e 20
     fast_dev_run: False
     auto_lr_find: False
 
@@ -39,7 +39,7 @@ scheduler:
     class_name: torch.optim.lr_scheduler.OneCycleLR
     params:
         pct_start: 0.3
-        epochs: 20
+        epochs: *e
         steps_per_epoch: 211
         max_lr: 0.001
     step: step

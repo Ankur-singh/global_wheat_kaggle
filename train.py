@@ -5,7 +5,7 @@ import pandas as pd
 from functools import partial
 from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader
-from utils import load_obj, send_message
+from utils import load_obj, send_message, printm
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.core.lightning import LightningModule as pl
@@ -84,7 +84,13 @@ class Net(pl):
                                  'weight_decay': 0.0}]
 
         optimizer = load_obj(self.config.optimizer.class_name)(optimizer_parameters, **self.config.optimizer.params)
-        scheduler = load_obj(self.config.scheduler.class_name)(optimizer, **self.config.scheduler.params)
+        if self.config.scheduler.params.steps_per_epoch:
+            scheduler = load_obj(self.config.scheduler.class_name)(optimizer, 
+                                                                    steps_per_epoch=len(train_dataset)//(self.config.data.batch_size), 
+                                                                    **self.config.scheduler.params)
+        else:
+            scheduler = load_obj(self.config.scheduler.class_name)(optimizer, **self.config.scheduler.params)
+            
         return [optimizer], [{"scheduler": scheduler,
                               "interval": self.config.scheduler.step,
                               "monitor": self.config.scheduler.monitor}]
@@ -162,5 +168,7 @@ if __name__ == "__main__":
         lr_finder = trainer.lr_find(net)
         new_lr = lr_finder.suggestion()
         net.optimizer.params.lr = new_lr
+
+    printm()
 
     trainer.fit(net)
