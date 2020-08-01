@@ -86,7 +86,7 @@ class Net(pl):
         optimizer = load_obj(self.config.optimizer.class_name)(optimizer_parameters, **self.config.optimizer.params)
         if self.config.scheduler.params.steps_per_epoch:
             scheduler = load_obj(self.config.scheduler.class_name)(optimizer, 
-                                                                    steps_per_epoch=len(train_dataset)//(self.config.data.batch_size), 
+                                                                    steps_per_epoch=len(self.train_dataset)//(self.config.data.batch_size), 
                                                                     **self.config.scheduler.params)
         else:
             scheduler = load_obj(self.config.scheduler.class_name)(optimizer, **self.config.scheduler.params)
