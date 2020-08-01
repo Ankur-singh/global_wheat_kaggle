@@ -143,6 +143,9 @@ if __name__ == "__main__":
     model = get_net(conf.data.img_sz)
     net = Net(model, conf)
 
+    if conf.weights and not conf.pretrained:
+        net.load_state_dict(torch.load(conf.weights)['state_dict'])
+
     if conf.pretrained:
         trainer = Trainer(resume_from_checkpoint=conf.pretrained)
     else:
@@ -154,5 +157,10 @@ if __name__ == "__main__":
                           early_stop_callback=early_stopping,
                           checkpoint_callback=checkpoint_callback,
                           **conf.trainer)
+
+    if conf.trainer.auto_lr_find:
+        lr_finder = trainer.lr_find(net)
+        new_lr = lr_finder.suggestion()
+        net.optimizer.params.lr = new_lr
 
     trainer.fit(net)
