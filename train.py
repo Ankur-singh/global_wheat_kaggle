@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 from functools import partial
+from collections import OrderedDict
 from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader
 from utils import load_obj, send_message, printm
@@ -18,14 +19,30 @@ from effdet.efficientdet import HeadNet
 from dataset import DatasetRetriever, get_train_transforms, get_valid_transforms, collate_fn
 
 
-def get_net(img_sz):
+def get_net(pimg_sz, cp=None, img_sz=None):
     config = get_efficientdet_config('tf_efficientdet_d5')
     net = EfficientDet(config, pretrained_backbone=True)
 
     config.num_classes = 1
-    config.image_size = img_sz
+    config.image_size = pimg_sz
     net.class_net = HeadNet(config, num_outputs=config.num_classes, norm_kwargs=dict(eps=.001, momentum=.01))
 
+    if cp and img_sz:
+        checkpoint = torch.load(cp)
+
+        state_dict = OrderedDict()
+        for k in checkpoint['state_dict'].keys():
+            splits = k.split('.')
+            new_k = '.'.join(splits[2:])
+            if new_k != 'anchors.boxes':
+                state_dict[new_k] = checkpoint['state_dict'][k]
+
+        net.load_state_dict(state_dict)
+        
+        config.num_classes = 1
+        config.image_size = img_sz
+        net.class_net = HeadNet(config, num_outputs=config.num_classes, norm_kwargs=dict(eps=.001, momentum=.01))
+    
     return DetBenchTrain(net, config)
 
 
@@ -146,14 +163,16 @@ if __name__ == "__main__":
         assert conf.chat_id, "If you want to get notified, you should specify your chat_id"
         send_message = partial(send_message, name=conf.name, chat_id=conf.chat_id, bot_token=conf.bot_token)
 
-    model = get_net(conf.data.img_sz)
+    if conf.weights and not conf.resume:
+        if conf.data.pimg_sz is None: conf.data.pimg_sz = conf.data.img_sz
+        model = get_net(conf.data.pimg_sz, conf.weights, conf.data.img_sz)
+    else:
+        model = get_net(conf.data.img_sz)
+    
     net = Net(model, conf)
 
-    if conf.weights and not conf.pretrained:
-        net.load_state_dict(torch.load(conf.weights)['state_dict'])
-
-    if conf.pretrained:
-        trainer = Trainer(resume_from_checkpoint=conf.pretrained)
+    if conf.resume:
+        trainer = Trainer(resume_from_checkpoint=conf.resume)
     else:
         checkpoint_callback = ModelCheckpoint(filepath=f'{conf.cp_path}'+'/{epoch}-{val_loss:.2f}')
         early_stopping = EarlyStopping('val_loss')
