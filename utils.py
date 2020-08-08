@@ -14,11 +14,12 @@ from sklearn.model_selection import StratifiedKFold
 import warnings
 warnings.filterwarnings("ignore")
 
+
 def printm():
     GPUs = GPU.getGPUs()
     gpu = GPUs[0]
     process = psutil.Process(os.getpid())
-    print("Gen RAM Free: " + humanize.naturalsize( psutil.virtual_memory().available ), " | Proc size: " + humanize.naturalsize( process.memory_info().rss))
+    print("Gen RAM Free: " + humanize.naturalsize(psutil.virtual_memory().available), " | Proc size: " + humanize.naturalsize(process.memory_info().rss))
     print("GPU RAM Free: {0:.0f}MB | Used: {1:.0f}MB | Util {2:3.0f}% | Total {3:.0f}MB".format(gpu.memoryFree, gpu.memoryUsed, gpu.memoryUtil*100, gpu.memoryTotal))
 
 
@@ -51,7 +52,7 @@ def send_message(msg, name, chat_id, bot_token):
 
 def create_folds(df, path, name='train_folds.csv', k=5, output=True):
     """
-    Take as dataframe with 'image_id' column and makes a .csv file, 
+    Take as dataframe with 'image_id' column and makes a .csv file,
     using stratified k-folds based on bbox_count
     """
     skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)

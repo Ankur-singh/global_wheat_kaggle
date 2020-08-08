@@ -1,4 +1,4 @@
-cp_path: saved/weights/
+cp_path: saved/weights
 logs_path: saved/logs
 
 trainer:
